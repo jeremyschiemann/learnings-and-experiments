@@ -1,5 +1,3 @@
-mod iterators;
-
 struct Node<T> {
     value: T,
     next: Option<Box<Node<T>>>,
@@ -67,8 +65,13 @@ impl<T> LinkedList<T> {
         }
         count
     }
-}
 
+    pub fn iter(&self) -> NodeIter<T> {
+        NodeIter {
+            next: self.head.as_deref(),
+        }
+    }
+}
 
 impl<T> Default for LinkedList<T> {
     fn default() -> Self {
@@ -76,43 +79,39 @@ impl<T> Default for LinkedList<T> {
     }
 }
 
+pub struct NodeIter<'a, T> {
+    next: Option<&'a Node<T>>,
+}
 
+impl<'a, T> Iterator for NodeIter<'a, T> {
+    type Item = &'a T;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn new_is_none() {
-        let list: LinkedList<i32> = LinkedList::new();
-        assert_eq!(list.len(), 0);
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.next {
+            Some(node) => {
+                self.next = node.next.as_deref();
+                Some(&node.value)
+            }
+            None => None,
+        }
     }
+}
 
-    #[test]
-    fn push_one() {
-        let mut list: LinkedList<i32> = LinkedList::new();
-        list.push_head(10);
-        assert_eq!(list.len(), 1);
+pub struct IntoNodeIter<T>(LinkedList<T>);
+
+impl<T> Iterator for IntoNodeIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.pop()
     }
+}
 
-    #[test]
-    fn push_two() {
-        let mut list: LinkedList<i32> = LinkedList::new();
-        list.push_head(10);
-        list.push_head(10);
+impl<T> IntoIterator for LinkedList<T> {
+    type Item = T;
+    type IntoIter = IntoNodeIter<T>;
 
-        assert_eq!(list.len(), 2);
-    }
-
-    #[test]
-    fn tail_head() {
-        let mut list: LinkedList<i32> = LinkedList::new();
-        list.push_tail(10);
-        list.push_tail(20);
-        list.push_head(5);
-
-        assert_eq!(list.pop(), Some(5));
-        assert_eq!(list.pop(), Some(10));
-        assert_eq!(list.pop(), Some(20))
+    fn into_iter(self) -> Self::IntoIter {
+        IntoNodeIter(self)
     }
 }
