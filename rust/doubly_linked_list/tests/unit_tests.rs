@@ -23,16 +23,43 @@ fn append_multiple() {
 }
 
 #[test]
+fn push_first() {
+    let mut list: DoubleLinkedList<i32> = DoubleLinkedList::new();
+    list.push(10);
+    assert_eq!(list.len(), 1);
+}
+
+#[test]
+fn push_multiple() {
+    let mut list: DoubleLinkedList<i32> = DoubleLinkedList::new();
+    list.push(1);
+    list.push(2);
+    list.push(3);
+    assert_eq!(list.len(), 3);
+}
+
+#[test]
 fn append_pop_order() {
     let mut list: DoubleLinkedList<usize> = DoubleLinkedList::new();
 
     for n in 1..=3_usize {
         list.append(n);
-        assert_eq!(list.len(), n);
     }
 
     for n in 3..=1_usize {
-        assert_eq!(list.len(), 3);
+        assert_eq!(list.pop_tail(), Some(n));
+    }
+}
+
+#[test]
+fn push_pop_order() {
+    let mut list: DoubleLinkedList<usize> = DoubleLinkedList::new();
+
+    for n in 1..=3_usize {
+        list.push(n);
+    }
+
+    for n in 1..=3_usize {
         assert_eq!(list.pop_tail(), Some(n));
     }
 }

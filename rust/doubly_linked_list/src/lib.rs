@@ -73,6 +73,23 @@ impl<T: Clone> DoubleLinkedList<T> {
         self.size += 1;
     }
 
+    pub fn push(&mut self, value: T) {
+        let new_node = Rc::new(RefCell::new(Node::new(value)));
+
+        match self.head.take() {
+            Some(old_head) => {
+                old_head.borrow_mut().previous = Some(Rc::downgrade(&new_node));
+                new_node.borrow_mut().next = Some(Rc::clone(&old_head));
+                self.head = Some(new_node)
+            }
+            None => {
+                self.tail = Some(Rc::downgrade(&new_node));
+                self.head = Some(new_node);
+            }
+        }
+        self.size += 1;
+    }
+
     pub fn pop_tail(&mut self) -> Option<T> {
         if self.size == 0 {
             return None;
