@@ -95,7 +95,7 @@ impl<T: Clone> DoubleLinkedList<T> {
             return None;
         }
 
-        let tail_node = self.tail.as_ref()?.upgrade()?;
+        let tail_node = Weak::upgrade(self.tail.as_ref()?)?;
         let tail_value = tail_node.borrow().value.clone();
 
         if let Some(prev_weak) = tail_node.borrow().previous.clone() {
