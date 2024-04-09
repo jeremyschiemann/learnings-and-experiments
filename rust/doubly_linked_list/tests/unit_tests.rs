@@ -113,6 +113,15 @@ fn vec_from_linkedlist() {
     assert_eq!(my_vec.len(), 5)
 }
 
+#[test]
+fn roundtrip_vec_conversion() {
+    let my_vec = vec![1, 2, 3, 4, 5];
+    let list: DoubleLinkedList<i32> = my_vec.into();
+    let rountrip_vec: Vec<i32> = list.into();
+
+    assert_eq!(rountrip_vec, [1, 2, 3, 4, 5]);
+}
+
 #[cfg(feature = "macros")]
 #[test]
 fn new_from_macros() {

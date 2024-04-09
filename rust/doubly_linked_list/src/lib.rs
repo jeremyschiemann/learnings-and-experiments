@@ -153,15 +153,11 @@ impl<T: Clone> From<Vec<T>> for DoubleLinkedList<T> {
 }
 
 impl<T: Clone> From<DoubleLinkedList<T>> for Vec<T> {
-    fn from(value: DoubleLinkedList<T>) -> Self {
-        let mut vec = Vec::with_capacity(value.size);
-        let mut current = value.head;
-
-        while let Some(node) = current {
-            vec.push(node.borrow().value.clone());
-            current = node.borrow().next.clone();
+    fn from(mut list: DoubleLinkedList<T>) -> Self {
+        let mut vec = Vec::with_capacity(list.size);
+        while let Some(node) = list.pop_head() {
+            vec.push(node);
         }
-
         vec
     }
 }
