@@ -53,10 +53,10 @@ impl<T: Clone> DoubleLinkedList<T> {
     pub fn append(&mut self, value: T) {
         let new_node = Rc::new(RefCell::new(Node::new(value)));
 
-        match self.tail.take() {
+        match self.tail.take().as_ref() {
             Some(old_tail) => {
-                if let Some(strong_tail) = old_tail.upgrade() {
-                    new_node.borrow_mut().previous = Some(Rc::downgrade(&strong_tail));
+                if let Some(strong_tail) = Weak::upgrade(old_tail).as_ref() {
+                    new_node.borrow_mut().previous = Some(Rc::downgrade(strong_tail));
                     strong_tail.borrow_mut().next = Some(Rc::clone(&new_node));
                     self.tail = Some(Rc::downgrade(&new_node));
                 } else {
