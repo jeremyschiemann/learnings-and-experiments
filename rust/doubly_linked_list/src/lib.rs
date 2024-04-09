@@ -96,7 +96,6 @@ impl<T: Clone> DoubleLinkedList<T> {
         }
 
         let tail_node = Weak::upgrade(self.tail.as_ref()?)?;
-        let tail_value = tail_node.borrow().value.clone();
 
         if let Some(prev_weak) = tail_node.borrow().previous.clone() {
             if let Some(prev_node) = prev_weak.upgrade() {
@@ -112,7 +111,13 @@ impl<T: Clone> DoubleLinkedList<T> {
         }
 
         self.size -= 1;
-        Some(tail_value)
+        Some(
+            Rc::try_unwrap(tail_node)
+                .ok()
+                .expect("There should only be one reference.")
+                .into_inner()
+                .value,
+        )
     }
 
     pub fn pop_head(&mut self) -> Option<T> {
@@ -120,8 +125,7 @@ impl<T: Clone> DoubleLinkedList<T> {
             return None;
         }
 
-        let head_node = Rc::clone(self.head.as_ref()?);
-        let head_value = head_node.borrow().value.clone();
+        let head_node = self.head.take().expect("There should be a head.");
 
         if let Some(next_node) = head_node.borrow().next.clone() {
             self.head = Some(next_node);
@@ -129,8 +133,14 @@ impl<T: Clone> DoubleLinkedList<T> {
             self.head = None;
             self.tail = None;
         }
-
-        Some(head_value)
+        self.size -= 1;
+        Some(
+            Rc::try_unwrap(head_node)
+                .ok()
+                .expect("There should only be one reference.")
+                .into_inner()
+                .value,
+        )
     }
 }
 
