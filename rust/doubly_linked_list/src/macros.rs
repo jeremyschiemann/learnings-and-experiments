@@ -3,7 +3,7 @@ macro_rules! linked_list {
     ($elem:expr; $n:expr) => {{
         let mut list = DoubleLinkedList::new();
         for _ in 0..$n {
-            list.append($elem.clone());
+            list.append($elem);
         }
         list
     }};
