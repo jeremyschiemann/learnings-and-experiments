@@ -122,6 +122,7 @@ fn roundtrip_vec_conversion() {
     assert_eq!(rountrip_vec, [1, 2, 3, 4, 5]);
 }
 
+
 #[cfg(feature = "macros")]
 #[test]
 fn new_from_macros() {

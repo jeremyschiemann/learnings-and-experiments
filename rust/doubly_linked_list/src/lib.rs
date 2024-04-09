@@ -33,7 +33,7 @@ pub struct DoubleLinkedList<T> {
     size: usize,
 }
 
-impl<T: Clone> DoubleLinkedList<T> {
+impl<T> DoubleLinkedList<T> {
     pub fn new() -> Self {
         Self {
             head: None,
@@ -144,7 +144,7 @@ impl<T: Clone> DoubleLinkedList<T> {
     }
 }
 
-impl<T: Clone> From<Vec<T>> for DoubleLinkedList<T> {
+impl<T> From<Vec<T>> for DoubleLinkedList<T> {
     fn from(value: Vec<T>) -> Self {
         let mut list = Self::new();
         value.into_iter().for_each(|x| list.append(x));
@@ -152,7 +152,7 @@ impl<T: Clone> From<Vec<T>> for DoubleLinkedList<T> {
     }
 }
 
-impl<T: Clone> From<DoubleLinkedList<T>> for Vec<T> {
+impl<T> From<DoubleLinkedList<T>> for Vec<T> {
     fn from(mut list: DoubleLinkedList<T>) -> Self {
         let mut vec = Vec::with_capacity(list.size);
         while let Some(node) = list.pop_head() {
@@ -162,7 +162,7 @@ impl<T: Clone> From<DoubleLinkedList<T>> for Vec<T> {
     }
 }
 
-impl<T: Clone> Default for DoubleLinkedList<T> {
+impl<T> Default for DoubleLinkedList<T> {
     fn default() -> Self {
         Self::new()
     }
