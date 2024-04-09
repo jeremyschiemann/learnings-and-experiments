@@ -52,6 +52,19 @@ fn append_pop_order() {
 }
 
 #[test]
+fn append_pop_order2() {
+    let mut list: DoubleLinkedList<usize> = DoubleLinkedList::new();
+
+    for n in 1..=3_usize {
+        list.append(n);
+    }
+
+    for n in 1..=3_usize {
+        assert_eq!(list.pop_head(), Some(n));
+    }
+}
+
+#[test]
 fn push_pop_order() {
     let mut list: DoubleLinkedList<usize> = DoubleLinkedList::new();
 
@@ -60,6 +73,19 @@ fn push_pop_order() {
     }
 
     for n in 1..=3_usize {
+        assert_eq!(list.pop_tail(), Some(n));
+    }
+}
+
+#[test]
+fn push_pop_order2() {
+    let mut list: DoubleLinkedList<usize> = DoubleLinkedList::new();
+
+    for n in 1..=3_usize {
+        list.push(n);
+    }
+
+    for n in 3..=1_usize {
         assert_eq!(list.pop_tail(), Some(n));
     }
 }

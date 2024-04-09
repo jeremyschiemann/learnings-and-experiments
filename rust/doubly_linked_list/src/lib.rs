@@ -91,7 +91,7 @@ impl<T: Clone> DoubleLinkedList<T> {
     }
 
     pub fn pop_tail(&mut self) -> Option<T> {
-        if self.size == 0 {
+        if self.is_empty() {
             return None;
         }
 
@@ -113,6 +113,24 @@ impl<T: Clone> DoubleLinkedList<T> {
 
         self.size -= 1;
         Some(tail_value)
+    }
+
+    pub fn pop_head(&mut self) -> Option<T> {
+        if self.is_empty() {
+            return None;
+        }
+
+        let head_node = Rc::clone(self.head.as_ref()?);
+        let head_value = head_node.borrow().value.clone();
+
+        if let Some(next_node) = head_node.borrow().next.clone() {
+            self.head = Some(next_node);
+        } else {
+            self.head = None;
+            self.tail = None;
+        }
+
+        Some(head_value)
     }
 }
 
