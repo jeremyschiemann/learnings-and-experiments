@@ -97,7 +97,7 @@ impl<T: Clone> DoubleLinkedList<T> {
 
         let tail_node = Weak::upgrade(self.tail.as_ref()?)?;
 
-        if let Some(prev_weak) = tail_node.borrow().previous.clone() {
+        if let Some(prev_weak) = tail_node.borrow_mut().previous.take() {
             if let Some(prev_node) = prev_weak.upgrade() {
                 prev_node.borrow_mut().next = None;
                 self.tail = Some(prev_weak);
@@ -127,7 +127,7 @@ impl<T: Clone> DoubleLinkedList<T> {
 
         let head_node = self.head.take().expect("There should be a head.");
 
-        if let Some(next_node) = head_node.borrow().next.clone() {
+        if let Some(next_node) = head_node.borrow_mut().next.take() {
             self.head = Some(next_node);
         } else {
             self.head = None;
