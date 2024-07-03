@@ -145,6 +145,7 @@ fn main() -> Result<()> {
 
         let mut map: FxHashMap<_, StationData> =
             FxHashMap::with_capacity_and_hasher(10000, fxhash::FxBuildHasher::default());
+
         for handle in handles {
             for (key, entry) in handle.join().unwrap_or_else(|_| panic!("bla")) {
                 map.entry(key)
@@ -153,19 +154,14 @@ fn main() -> Result<()> {
             }
         }
 
-        let mut map_data: Vec<(_, _)> = map.into_iter().collect();
-        map_data.sort_unstable_by(|a, b| a.0.partial_cmp(b.0).unwrap());
-
         println!(
-            "{} in {:?} (whole run took {:?})",
-            map_data
-                .iter()
-                .map(|(k, v)| format!(
-                    "{}={v:?}",
-                    std::str::from_utf8(k).unwrap_or_else(|e| panic!("{}", e.to_string()))
-                ))
-                .collect::<Vec<String>>()
-                .join(", "),
+            "{:?} in {:?} (whole run took {:?})",
+            FxHashMap::from_iter(map.into_iter().map(|(key, data)| {
+                (
+                    std::str::from_utf8(key).unwrap_or_else(|e| panic!("{}", e.to_string())),
+                    data,
+                )
+            })),
             time.elapsed(),
             prog_start.elapsed(),
         );
