@@ -1,26 +1,29 @@
 use std::fs::File;
-use std::io::{Read, Write};
 
-use fxhash::FxHashMap;
+use anyhow::Context;
+use fxhash::{FxBuildHasher, FxHashMap};
+use std::collections::{BTreeMap, HashMap};
+use std::env::args;
 use std::fmt::{Debug, Formatter};
 use std::time::Instant;
-use std::{io, iter, thread};
+use std::{iter, thread};
 
 struct StationData {
-    min: i64,
-    max: i64,
-    count: usize,
-    sum: i64,
+    min: i8,
+    max: i8,
+    count: u16,
+    sum: i32,
 }
-
 impl StationData {
-    fn add(&mut self, new_val: i64) {
+    #[inline]
+    fn add(&mut self, new_val: i8) {
         self.max = self.max.max(new_val);
         self.min = self.min.min(new_val);
         self.count += 1;
-        self.sum += new_val;
+        self.sum += new_val as i32;
     }
 
+    #[inline]
     fn merge(&mut self, other: &Self) {
         self.max = self.max.max(other.max);
         self.min = self.min.min(other.min);
@@ -29,18 +32,20 @@ impl StationData {
     }
 }
 
-impl From<i64> for StationData {
-    fn from(value: i64) -> Self {
+impl From<i8> for StationData {
+    #[inline]
+    fn from(value: i8) -> Self {
         Self {
             min: value,
             max: value,
-            sum: value,
+            sum: value as i32,
             count: 1,
         }
     }
 }
 
 impl Debug for StationData {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -52,54 +57,50 @@ impl Debug for StationData {
     }
 }
 
-type Result<T, E = Box<dyn std::error::Error>> = std::result::Result<T, E>;
-
-fn get_station_name_and_temperature(line: &[u8]) -> Result<(&[u8], i64)> {
-    let split_point = line.iter().rposition(|&b| b == b';').ok_or_else(|| {
+fn get_station_name_and_temperature(line: &[u8]) -> anyhow::Result<(&[u8], i8)> {
+    let split_point = line.iter().rposition(|&b| b == b';').with_context(|| {
         format!(
             "no ; found in {}",
             std::str::from_utf8(line).unwrap_or("invalid utf8")
         )
     })?;
 
-    let mut temp: i64 = 0;
     let sign_multiplier = if line[split_point + 1] == b'-' { -1 } else { 1 };
     let offset = if sign_multiplier == 1 { 1 } else { 2 };
 
-    for b in line[split_point + offset..].iter().filter(|&b| *b != b'.') {
-        temp = temp * 10 + (b - b'0') as i64;
+
+    let mut temp =(line[split_point+offset] - b'0') as i8;
+    if line.len() - (split_point+offset) - 2 == 2 {
+        temp = temp * 10 + (line[split_point+offset+1] - b'0') as i8;
     }
+
+    temp = temp * 10 + (line[line.len()-1] - b'0') as i8;
 
     Ok((&line[..split_point], temp * sign_multiplier))
 }
 
-fn read_file(buffer: &mut Vec<u8>) -> Result<()> {
-    print!("reading file...");
-    io::stdout().flush()?;
-    let mut f = File::open("measurements.txt")?;
-    f.read_to_end(buffer)?;
-    println!("finished!");
-    buffer.shrink_to_fit();
-    Ok(())
+
+fn get_map(path: &str) -> anyhow::Result<memmap2::Mmap> {
+
+    let f = File::open(path)?;
+    let map = unsafe {memmap2::MmapOptions::new().map(&f)?};
+    Ok(map)
 }
 
-fn main() -> Result<()> {
+fn main() -> anyhow::Result<()> {
     let prog_start = Instant::now();
+    let file_path = args()
+        .nth(1)
+        .unwrap_or_else(|| "measurements.txt".to_string());
+    println!("File: {file_path}");
 
-    println!("start");
     let core_count: usize = thread::available_parallelism()?.into();
     println!("Cores: {core_count}");
 
-    //let buffer = get_mmap()?;
-
-    let mut buffer = Vec::with_capacity(15 * 1024usize.pow(3));
-    read_file(&mut buffer)?;
+    let buffer = get_map(&file_path)?;
 
     let time = Instant::now();
-
-    let buffer_size = buffer.len();
-
-    let chunk_size = buffer_size / core_count;
+    let chunk_size = buffer.len() / core_count;
 
     let starting_points: Vec<usize> = iter::once(0usize)
         .chain({
@@ -126,8 +127,8 @@ fn main() -> Result<()> {
             let thread_buffer = &buffer[sp..ep];
 
             handles.push(s.spawn(move || {
-                let mut map: FxHashMap<_, StationData> =
-                    FxHashMap::with_capacity_and_hasher(10000, fxhash::FxBuildHasher::default());
+                let mut map: HashMap<_, StationData, FxBuildHasher> =
+                    FxHashMap::with_capacity_and_hasher(10000, FxBuildHasher::default());
 
                 thread_buffer
                     .split(|&b| b == b'\n')
@@ -143,11 +144,13 @@ fn main() -> Result<()> {
             }));
         }
 
-        let mut map: FxHashMap<_, StationData> =
-            FxHashMap::with_capacity_and_hasher(10000, fxhash::FxBuildHasher::default());
+        let mut map: BTreeMap<_, StationData> = BTreeMap::new();
 
         for handle in handles {
-            for (key, entry) in handle.join().unwrap_or_else(|_| panic!("bla")) {
+            for (key, entry) in handle
+                .join()
+                .unwrap_or_else(|_| panic!("thread failed to join"))
+            {
                 map.entry(key)
                     .and_modify(|data| data.merge(&entry))
                     .or_insert(entry);
@@ -155,13 +158,14 @@ fn main() -> Result<()> {
         }
 
         println!(
-            "{:?} in {:?} (whole run took {:?})",
-            FxHashMap::from_iter(map.into_iter().map(|(key, data)| {
-                (
-                    std::str::from_utf8(key).unwrap_or_else(|e| panic!("{}", e.to_string())),
-                    data,
-                )
-            })),
+            "{{\n{}\n}}\nin {:?} (whole run took {:?})",
+            map.iter()
+                .map(|(k, v)| format!(
+                    "\t{}={v:?}",
+                    std::str::from_utf8(k).unwrap_or_else(|e| panic!("{}", e.to_string()))
+                ))
+                .collect::<Vec<String>>()
+                .join(", \n"),
             time.elapsed(),
             prog_start.elapsed(),
         );
